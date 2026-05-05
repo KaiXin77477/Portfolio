@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--h1 style="color:red;">TEST VERSION</h1-->
+    <title>Robo-Advisor - Portfolio Optimiser</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        form {
+            background: #ffffff;
+	    border-left: 4px solid #2c3e50;
+            padding: 20px;
+            border-radius: 8px;
+            width: 550px;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+        }
+
+        input, select {
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        input[type="submit"] {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background: #34495e;
+        }
+
+
+        input[type="checkbox"] {
+            width: auto;
+        }
+
+        .results {
+            margin-top: 30px;
+            background: #ffffff;
+	    border-left: 4px solid #2c3e50;
+            padding: 20px;
+            border-radius: 8px;
+            width: 550px;
+            box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+	label {
+    	   display: block;
+           margin-top: 10px;
+        }
+
+	/* Number inputs (investment + contributions) */
+	   input[type="number"] {width: 150px;}
+
+	/* Dropdowns */
+	select {width: 200px;}
+
+	/* Sliders (longer than boxes) */
+	input[type="range"] {width: 300px;}
+
+	/* Sector table container */
+	.sector-box {width: 400px;}
+
+	/* Checkbox stays natural */
+	input[type="checkbox"] {width: auto;}
+
+	/* Submit Run portfolio button */
+	input[type="submit"] {width: 100%}
+
+	.tooltip {
+    	    position: relative;
+    	    cursor: help;
+    	    display: inline-block;
+	}
+
+	.tooltip .tooltiptext {
+    	    visibility: hidden;
+    	    width: 280px;
+    	    background-color: #2c3e50;
+    	    color: #fff;
+    	    text-align: left;
+    	    padding: 10px;
+    	    border-radius: 6px;
+    	    font-size: 12px;
+    	    line-height: 1.4;
+
+    	    position: absolute;
+    	    z-index: 1;
+    	    bottom: 125%;
+    	    left: 0;
+	}
+
+	.tooltip:hover .tooltiptext {
+    	     visibility: visible;
+	}
+
+    </style>
+</head>
+
+<body>
+
+    <h1>Robo-Advisor - Portfolio Optimizer</h1>
+
+    <!-- Introductory paragraph -->
+    	<div style="
+    	width: 550px;
+    	background: #ffffff;
+	border-left: 4px solid #2c3e50;
+    	padding: 15px;
+    	border-radius: 8px;
+    	margin-bottom: 25px;
+    	box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+    	line-height: 1.5;
+">
+    <p>
+        Welcome to our robo-advisor, designed to give inexperienced investors an idea of how their money 
+        could grow based on their initial investment amount, risk level, contributions and stock selection.
+    </p>
+
+    <p>
+        The programme bases its calculations on historical data obtained via the 
+	    <span class="tooltip"><b>yfinance </b> 
+    		<span class="tooltiptext">
+        	    <b>yfinance:</b> yfinance is a Python library that provides access to historical market data from Yahoo Finance. It allows users to download price, dividend, and other financial data for a wide range of assets, which can then be used for analysis and modelling.
+    		</span>
+	    </span> library and 
+        generates forward-looking projections using statistical modelling. The code returns a list of possible 
+        weighted stocks (called a portfolio) based on the user's choice of investment sectors. 
+    </p>
+
+    <p>
+        <b>Please note:</b> This tool does not account for external events such as wars, economic shocks, 
+        pandemics, or other market disruptions that can significantly impact asset prices.
+    </p>
+
+    <p>
+        As such, this tool should be used as a guide to possible outcomes, not a prediction of actual future performance.
+    </p>
+</div>
+
+    <!-- ========================= -->
+    <!-- Input Form -->
+    <!-- ========================= -->
+    <form method="POST" autocomplete="off">
+
+        <label>How much do you want to invest (£)? </label>
+        <!-- Make sure the input (amount invested) is positive integer -->
+        <input type="number" name="initial" min="0" step="1"
+               value="{{ form.initial if form else '' }}" required>
+
+        <br><br><br>
+	<label>
+    		<input type="checkbox" name="enable_contributions"
+           	onchange="toggleContributionInput()"
+           	{% if form and form.enable_contributions %}checked{% endif %}>
+    		Would you like to add monthly contributions? Check box if yes.
+	</label>
+
+	<div id="contributionBlock" style="margin-top:10px;">
+	<label>
+    		What monthly contribution would you like to make?
+	</label>
+    		<input type="number" name="monthly_contribution"
+           	step="any" min="0"
+           	value="{{ form.get('monthly_contribution', 0) }}">
+        </div>
+
+
+        <!-- Add some extra space -->
+	<div style="height:35px;"></div>
+
+	<label>
+	<span class="tooltip">Risk Level: 
+    	    <span class="tooltiptext">
+        	<b>Risk:</b> Risk refers to the possibility that an investment’s actual outcome will differ from what is expected. It includes the chance of losing value as well as the uncertainty of future returns. Different types of risk affect investments in different ways.
+    	   </span>
+	</span>
+ 	Input a number between 1 and 10:  <span id="riskValue">{{ form.risk if form else 5 }}
+	</span>
+        <br>(1 = very low risk, 10 = very high risk) </label>
+
+	<input type="range" name="risk" min="1" max="10"
+               value="{{ form.risk if form else 5 }}"
+               oninput="riskValue.innerText = this.value">
+
+        <br><br>
+
+        <label>
+	    <span class="tooltip">Investment duration:
+        	<span class="tooltiptext">
+		The longer you hold an investment, the greater the expected growth over time. Long term investment is less susceptible to short term market fluctuations and is considered less volatile.
+        </span>
+    </span>
+</label>
+	<select name="years">
+    	    <option value="0.5" {% if form and form.years == "0.5" %}selected{% endif %}>6 months</option>
+            <option value="1" {% if (not form) or (form and form.years == "1") %}selected{% endif %}>1 year</option>
+    	    <option value="2" {% if form and form.years == "2" %}selected{% endif %}>2 years</option>
+    	    <option value="3" {% if form and form.years == "3" %}selected{% endif %}>3 years</option>
+    	    <option value="5" {% if form and form.years == "5" %}selected{% endif %}>5 years</option>
+    	    <option value="10" {% if form and form.years == "10" %}selected{% endif %}>10 years</option>
+    	    <option value="20" {% if form and form.years == "20" %}selected{% endif %}>20 years</option>
+	</select>
+
+        <br><br><br>
+
+        <label>
+    	    <span class="tooltip">
+        	Dividend
+        	<span class="tooltiptext">
+            	     <b>Dividend:</b> A cash payment made by a company to shareholders, typically as a share of profits. Dividends provide income to shareholders, separate from price appreciation and can represent a significant portion of total return, especially for mature or UK-listed companies. Not all companies pay dividends, and the amount can vary over time.
+        	</span>
+    	    </span>
+    	    preference:
+	</label>
+        <select name="dividend">
+    	    <option value="reinvest" {% if form and form.dividend == "reinvest" %}selected{% endif %}>Reinvest (compound)</option>
+    	    <option value="income" {% if form and form.dividend == "income" %}selected{% endif %}>Take income (no reinvest)</option>
+	</select>
+
+<br><br><br>
+
+<!-- Volatility Targeting checkbox and slider section -->
+<label>
+    <input type="checkbox" name="vol_targeting"
+           onchange="toggleVolSlider()"
+           {% if form and form.vol_targeting %}checked{% endif %}>
+    Would you like to enable 
+	<span class="tooltip">volatility targeting?
+    	    <span class="tooltiptext">
+        	<b>Volatility Targeting:</b> Volatility targeting is a strategy that adjusts the level of investment risk to keep portfolio volatility close to a chosen target. When markets become more volatile, the strategy reduces exposure; when markets are calmer, it increases exposure.
+    	    </span>
+	</span>
+</label>
+
+<div id="volBlock">
+    <label>
+        Target volatility (1% – 50%):
+        <span id="volValue">
+            {{ (form.get("vol_target", 0.10) | float * 100) | round(0) }}%
+        </span>
+    </label>
+
+    <input type="range"
+           name="vol_target"
+           min="0.01"
+           max="0.50"
+           step="0.01"
+           value="{{ form.get('vol_target', 0.10) }}"
+           oninput="updateVolLabel(this.value)">
+</div>
+
+<br>
+       
+
+        <label>Which sectors do you wish to invest in? Uncheck those you don't want. </label><br>
+
+        <div style="background:white; padding:10px; border-radius:6px; border:1px solid #ccc;">
+
+        {% set selected = form.getlist('sectors') if form else [] %}
+
+        <table style="width:100%; border-collapse: collapse;">
+        {% for s in ["Consumer","Crypto", "Defence and aerospace", "Energy and oil","Finance","Healthcare and pharma","Industrial","Low risk bonds (government)", "Metals", "Tech and AI","Telecom"] %}
+
+        <tr>
+            <td style="width:30px; text-align:left;">
+            <input type="checkbox" name="sectors" value="{{ s }}"
+            {% if (not form) or (form and s in selected) %}checked{% endif %}>
+            </td>
+            <td style="text-align:left;">
+                {{ s }}
+            </td>
+        </tr>
+        {% endfor %}
+        </table>
+
+</div>
+
+        <br><br>
+
+        <input type="submit" value="Run Portfolio Optimizer">
+
+    </form>
+
+    <!-- ========================= -->
+    <!-- Error display -->
+    <!-- ========================= -->
+<!-- Error display -->
+{% if error %}
+    <div class="error">
+        <b>Error:</b> {{ error }}
+    </div>
+{% endif %}
+
+
+{% if result %}
+<div style="display:flex; gap:30px; align-items:flex-start;">
+
+    <!-- LEFT: RESULTS -->
+    <div class="results">
+        <h2>Results</h2>
+
+        <h3>Total 
+	    <span class="tooltip">Portfolio 
+    	    	<span class="tooltiptext">
+        	    <b>Portfolio:</b> This is a collection of investments held together as a group. It can include assets such as shares, bonds, funds, or cash. The mix of assets in a portfolio determines its overall level of risk and potential return.
+    	    	</span>
+	    </span>
+	(after applying risk level)</h3>
+
+
+
+	<p>
+	    <span class="tooltip">
+        	<b>Expected Return (μ)</b>
+        	<span class="tooltiptext">
+            	    <b>Expected Return (μ):</b> Expected return is an estimate of how much an investment or portfolio might earn over a specific period. It is based on historical data, market assumptions, and statistical models. While useful for planning, it is not a guarantee of future performance.
+        	</span>
+    	    </span>
+    	    : {{ result.return_total }}%
+	</p>
+
+	<p>
+	<span class="tooltip"><b>Volatility: </b> 
+    	    <span class="tooltiptext">
+        	<b>Volatility:</b> Volatility measures how much the price of an investment moves up and down over time. High volatility indicates larger and more frequent price changes, while low volatility suggests more stable movements clustered around the average. It is a key indicator of investment risk.
+    	    </span>
+	</span>
+	{{ result.vol_total }}%</p>
+
+
+	<p>
+	<span class="tooltip"><b>Risky Allocation: </b>
+    	    <span class="tooltiptext">
+        	<b>Risky Allocation:</b> This represents the portion of the portfolio invested in assets that carry higher risk, such as equities or commodities. These assets have the potential to generate higher returns but are more sensitive to market fluctuations and economic conditions.
+    	    </span>
+	</span>
+	{{ result.risky_weight }}%</p>
+
+	<p>
+	    <span class="tooltip"><b>Risk-Free Allocation:</b>
+    		<span class="tooltiptext">
+        	<b>Risk-Free Allocation:</b> This represents the portion of the portfolio allocated to low-risk or risk-free assets, such as cash or short-term government securities. These investments provide stability and help reduce overall portfolio volatility, but typically offer lower returns.
+    		</span>
+	    </span>
+	{{ result.rf_weight }}%</p>
+
+	<p>
+	    <span class="tooltip"><b>Sharpe Ratio:</b>
+    		<span class="tooltiptext">
+        	    <b>Sharpe Ratio:</b> This is a widely used metric to measure the performance of an investment, asset, fund or portfolio relative to the amount of risk taken. It is defined as the difference between the returns of the investment and the risk-free return, divided by the standard deviation of the investment returns. A higher Sharpe ratio indicates a better risk-adjusted return, meaning the investment provides a greater return for the additional risk taken.
+    		</span>
+	    </span>
+	    {{ result.sharpe_ratio }}
+	</p>
+
+        <p>
+	    <span class="tooltip"><b>Sortino Ratio:</b>
+    		<span class="tooltiptext">
+        	    <b>Sortino Ratio:</b> This is similar to the Sharpe Ratio but focuses only on downside risk, meaning it penalises negative volatility rather than all volatility. It provides a more targeted view of how well an investment performs when markets fall. The Sortino ratio is normally smaller than the Sharpe ratio as it only penalises downside volatility.
+    	    	</span>
+	    </span>
+	{{ result.sortino_ratio }}
+	</p>
+
+	<br>
+
+	<h4>
+	    <span class="tooltip">Risky Portfolio
+    		<span class="tooltiptext">
+        	    <b>Risky Portfolio:</b> A risky portfolio comprises assets whose value can fluctuate significantly over time. A portfolio made up of risky assets offers the potential for higher returns but come with higher volatility.
+    		</span>
+	    </span>
+	    Only (before <span class="tooltip">cash allocation)
+        	<span class="tooltiptext">
+            	    <b>Cash Allocation:</b> This represents the portion of the portfolio held in low-risk or risk-free assets, such as cash or short-term government securities. Cash allocation helps reduce overall portfolio risk and provides stability, but typically offers lower returns compared to higher-risk investments.
+        	</span>
+    	    </span>
+	</h4>
+
+
+
+
+	<p><b>Return </b>
+	<span class="tooltip"><b>(risky assets):</b>
+    	    <span class="tooltiptext">
+            	<b>Risky Asset:</b> A risky asset is an investment whose value can fluctuate significantly over time. Shares, commodities, and high-yield bonds are common examples. These assets offer the potential for higher returns but come with greater uncertainty.
+	     </span>
+	</span>
+		{{ result.return_risky }}%
+	</p>
+
+
+	<p><b>Volatility (risky assets):</b> {{ result.vol_risky }}%</p>
+
+	<br>
+
+	<p><span class="tooltip"><b>Final Portfolio Value (Median):</b>
+    	    <span class="tooltiptext">
+        	<b>Final Portfolio Value (Median):</b> This is the middle outcome from all simulated portfolio paths at the end of the investment period. It represents a typical result, where half of the simulations perform better and half perform worse, helping to reduce the impact of extreme outcomes.
+	    </span>
+	</span>
+	{{ result.final_summary.median }}</p>
+
+	<p><span class="tooltip"><b>Range (10–90%): </b>
+    	    <span class="tooltiptext">
+        	<b>Range (10–90%):</b> This shows the spread of outcomes between the 10th and 90th percentiles of the simulation results. It provides an indication of uncertainty, where most outcomes are expected to fall within this range, excluding extreme best and worst cases.
+    	    </span>
+	</span>
+	{{ result.final_summary.low }} – {{ result.final_summary.high }}</p>
+
+	<br>
+
+        <h3><span class="tooltip">Selected Portfolio
+    		<span class="tooltiptext">
+        	<b>Selected Portfolio:</b> This shows how investment money is divided across different investment types, such as stocks, bonds, or cash. A balanced portfolio helps manage risk and improve long term performance.
+    	   	</span>
+	    </span>
+	</h3>
+
+        <table border="1" cellpadding="6" style="border-collapse: collapse; width:100%;">
+            <tr>
+                <th>
+	    	    <span class="tooltip">Asset
+    			<span class="tooltiptext">
+        		<b>Asset:</b> An asset is an item of value or resource that can be owned, traded, or invested in with the expectation of future benefit. In investing, assets commonly include shares, bonds, property, or funds, each offering different levels of risk and potential return. A mix of asset types helps create a balanced investment approach.
+    			</span>
+	    	    </span> 
+		</th>
+                <th>
+	    	    <span class="tooltip">Weight (%)
+    			<span class="tooltiptext">
+        		<b>Weight:</b> This refers to the proportion of a portfolio allocated to a particular asset or asset class. For example, a portfolio might have a 60% weight in stocks and 40% in bonds. Weights determine the overall risk and return characteristics of the portfolio.
+    			</span>
+	    	    </span> 
+		</th>
+            </tr>
+            {% for asset, weight in result.weights.items() %}
+            <tr>
+                <td>{{ asset }}</td>
+                <td>{{ (weight * 100) | round(2) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+     <!-- RIGHT: GRAPH -->
+    <div style="flex-grow:1; background:#ffffff; border-left: 4px solid #2c3e50; padding:20px; border-radius:8px; box-shadow:0px 2px 6px rgba(0,0,0,0.1);">
+
+	<h3 class="tooltip">
+    	    Portfolio Growth
+    	    <span class="tooltiptext">
+        	This chart shows the simulated growth of your portfolio over time based on historical data and model assumptions.
+    	    </span>
+	</h3>
+        {{ result.growth_plot | safe }}
+    </div>
+</div>
+
+<div style="display:flex; gap:30px; margin-top:20px;">
+
+    <!-- LEFT: BAR CHART -->
+    <div style="flex:1; background:#ffffff; border-left: 4px solid #2c3e50; padding:20px; border-radius:8px; box-shadow:0px 2px 6px rgba(0,0,0,0.1);">
+        {{ result.bar_chart | safe }}
+    </div>
+
+    <!-- RIGHT: DONUT -->
+    <div style="flex:1; background:#ffffff; border-left: 4px solid #2c3e50; padding:20px; border-radius:8px; box-shadow:0px 2px 6px rgba(0,0,0,0.1);">
+        {{ result.donut_chart | safe }}
+    </div>
+</div>
+
+<div style="display:flex; gap:30px; margin-top:20px;">
+
+    <!-- LEFT: Correlation Heatmap -->
+    <div style="flex:1; background:#ffffff; border-left: 4px solid #2c3e50; padding:20px; border-radius:8px; box-shadow:0px 2px 6px rgba(0,0,0,0.1);">
+        {{ result.corr_plot | safe }}
+    </div>
+
+    <!-- RIGHT: Monte Carlo Distribution -->
+    <div style="flex:1; background:#ffffff; border-left: 4px solid #2c3e50; padding:20px; border-radius:8px; box-shadow:0px 2px 6px rgba(0,0,0,0.1);">
+        {{ result.dist_plot | safe }}
+    </div>
+
+</div>
+{% endif %}
+
+
+<!-- This is some java script to grey out monthly contribution slider if check box isn't enabled -->
+<script>
+function toggleContributionInput() {
+    const checkbox = document.querySelector('input[name="enable_contributions"]');
+    const input = document.querySelector('input[name="monthly_contribution"]');
+    const block = document.getElementById("contributionBlock");
+
+    const enabled = checkbox.checked;
+    if (!enabled) {input.value = 0;}
+
+    if (checkbox && input && block) {
+        input.disabled = !enabled;
+        block.style.opacity = enabled ? "1" : "0.3";
+        input.style.cursor = enabled ? "text" : "not-allowed";
+    }
+}
+
+function toggleVolSlider() {
+    const checkbox = document.querySelector('input[name="vol_targeting"]');
+    const slider = document.querySelector('input[name="vol_target"]');
+    const block = document.getElementById("volBlock");
+
+    const enabled = checkbox.checked;
+
+    if (checkbox && slider && block) {
+        slider.disabled = !enabled;
+        block.style.opacity = enabled ? "1" : "0.3";
+        slider.style.cursor = enabled ? "pointer" : "not-allowed";
+    }
+}
+
+window.onload = function() {
+    toggleContributionInput();
+    toggleVolSlider();
+};
+</script>
+
+<script>
+function updateVolLabel(val) {
+    const pct = Math.round(val * 100);
+    document.getElementById("volValue").innerText = pct + "%";
+}
+</script>
+
+<div style="
+    margin-top: 40px;
+    font-size: 12px;
+    color: #555;
+">
+    <b>Disclaimer:</b> The creators of this robo-advisor accept no responsibility for any loss or damage incurred with the use of this product. Investment is entirely at the user’s own risk.
+</div>
+
+
+
+</body>
+</html>
