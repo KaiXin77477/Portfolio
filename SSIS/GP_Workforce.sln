@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.33403.129
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{159641D6-6404-4A2A-AE62-294DE0FE8301}") = "GP_Workforce", "GP_Workforce\GP_Workforce.dtproj", "{F05C4776-F390-4F70-8D80-324B8A9FAD04}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Development|Default = Development|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F05C4776-F390-4F70-8D80-324B8A9FAD04}.Development|Default.ActiveCfg = Development
+		{F05C4776-F390-4F70-8D80-324B8A9FAD04}.Development|Default.Build.0 = Development
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {52DA147B-A30F-4C2E-945E-B0B2BE6ED558}
+	EndGlobalSection
+EndGlobal
